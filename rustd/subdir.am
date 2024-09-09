@@ -1,0 +1,39 @@
+#
+# rustd -- RUSTD Daemon
+#
+
+if RUSTD
+
+EXTRA_DIST += rustd/Cargo.toml
+sbin_PROGRAMS += rustd/rustd
+rustd_rustd_SOURCES = rustd/rust_main.rs
+
+if DEV_BUILD
+RUSTD_BUILD_FLAG =
+RUSTD_TARGET_DIR = debug
+else
+RUSTD_BUILD_FLAG = --release
+RUSTD_TARGET_DIR = release
+endif
+
+# (cd rustd && cargo update $(RUSTD_BUILD_FLAG))
+rustd/Cargo.lock: rustd/Cargo.toml
+	if [ -f $(srcdir)/rustd/Cargo.lock ]; then
+		cp $(srcdir)/rustd/Cargo.lock $@
+	else
+		(cd rustd && cargo update $(RUSTD_BUILD_FLAG))
+	fi
+
+rustd/rustd: rustd/target/$(RUSTD_TARGET_DIR)/rustd$(EXEEXT)
+	@printf "  CP       rustd/rustd\n"
+	@cp $< $@
+
+rustd/target/$(RUSTD_TARGET_DIR)/rustd$(EXEEXT): $(rustd_rustd_SOURCES) rustd/Cargo.toml
+	@printf "  CARGO    $@\n"
+	@(cd rustd && cargo -q build $(RUSTD_BUILD_FLAG))
+
+clean-rustd:
+	(cd rustd && cargo clean)
+else
+clean-rustd:
+endif
